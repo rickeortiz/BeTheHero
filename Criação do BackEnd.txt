@@ -1,0 +1,88 @@
+- BackEnd
+	*PowerShell
+		npm init -y (iniciar o node)
+		npm install express (contém as rotas)
+		npm install nodemon (fazer com que não precise reiniciar o processo para ver as alterações)
+		npm install knex (Antes de instalar banco de dados)
+		npm install sqlite3 (Banco de dados escolhido)
+		npx knex init (cria o javascript do banco de dados)
+		--DEPOIS DO KNEXFILE.JS
+		npx knex migrate:make mensagem (cria o log de acordo com o que for feito no banco)
+		--DEPOIS DO ARQUIO DE MIGRAÇÃO
+		npx knex migrate:latest (roda a alteração feita pelas migrações)
+		npm install cors (determina quem pode acessar a aplicação)
+	
+	*Arquivos
+		package.json (alteração)
+			scripts: "start": "nodemon index.js" //Começar o node no index.js e sempre ir renderizando
+		knexfile.js
+			connections: "filename: './src/database/db.sqlite'" //caminho do banco de dados
+			migrations: "directory: './src/database/migrations'" //log de alterações do banco (também cria o banco nesse caso)
+			"useNullAsDefault: true" //Para que o valor padrão das colunas sejam vazios
+		src/database/migrations/Arquivo de migrações
+			"exports.up = function(knex) {
+			  return knex.schema.createTable('users', function(table) {
+				table.increments('id').primary();
+				table.string('usuario').notNullable();
+				table.string('senha').notNullable();
+				table.string('nome').notNullable();
+				table.string('email').notNullable();
+			  });
+			}; //Cria a tabela
+
+			exports.down = function(knex) {
+			  return knex.schema.dropTable('users');
+			}; //dropa a tabela"
+		src/database/connections.js
+			"const knex = require('knex'); //importar o arquivo para usar o banco
+			const configuration = require('../../knexfile'); //puxa a configuração do arquivo knex
+
+			const connection = knex(configuration.development); //seta a conexão para development do arquivo knex
+
+			module.exports = connection; //exporta com a configuração"
+		src/controller/userController.js
+			"const connection = require('../database/connections');
+
+			module.exports ={
+				async index (request, response) {
+					const users = await connection('users').select('*');
+
+					return response.json(users);
+				},
+
+				async create (request, response) {
+					const { usuario, senha, nome, email } = request.body;
+
+					await connection('users').insert({
+						usuario,
+						senha,
+						nome,
+						email
+					})
+
+					return response.json({ id });
+				}
+			}"
+		src/routes.js
+			"const express = require('express');
+
+			const userController = require('./controller/userController');
+
+			const routes = express.Router();
+
+			routes.get('/user', userController.index);
+
+			module.exports = routes;"
+		src/index.js
+			"const express = require('express'); //importar o express que contém o arquivo das rotas
+			const cors = require('cors'); //importar o cors para definir quem pode acessar a aplicação
+			
+			const routes = require('./routes'); //importar o arquivo que conterá as rotas
+
+			const app = express(); //seta a saída como sendo um express
+
+			app.use(cors()); //seta aqui quais hosts podem acessar
+			app.use(express.json()); //utilizar o json do retorno
+			app.use(routes); //usar o arquivo de rotas
+
+			app.listen(3333); //porta do arquivo"
